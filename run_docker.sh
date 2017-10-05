@@ -11,4 +11,4 @@ x11vnc -storepasswd vnc /tmp/vncpass
 x11vnc -rfbport 5900 -rfbauth /tmp/vncpass -forever > /dev/null 2>&1 &
 
 cd /home/openwpm/OpenWPM
-python crawl.py
+python crawl.py $1
