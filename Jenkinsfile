@@ -1,5 +1,13 @@
 #!/bin/env groovy
 
+@Library('cliqz-shared-library@v1.2') _
+
+properties([
+    parameters([
+        string(name: 'SITES_LIMIT', defaultValue: '500'),
+    ]),
+])
+
 node('docker && gpu') {
     stage('checkout') {
         checkout scm
@@ -11,9 +19,12 @@ node('docker && gpu') {
         dockerImage = docker.build("cliqz-oss/openwpm:${env.BUILD_TAG}");
     }
 
-    dockerImage.inside() {
+    def VNC_PORT = helpers.getFreePort(lower: 20000, upper: 20999)
+    def dockerParams = "-p ${VNC_PORT}:5900 --cpus=2 --device /dev/nvidia0 --device /dev/nvidiactl"
+
+    dockerImage.inside(dockerParams) {
         stage('run crawl') {
-            sh '/home/openwpm/OpenWPM/run_docker.sh'
+            sh "/home/openwpm/OpenWPM/run_docker.sh ${params.SITES_LIMIT}"
         }
 
         stage('upload data') {
