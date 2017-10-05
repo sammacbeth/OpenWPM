@@ -19,8 +19,12 @@ node('docker && gpu') {
         dockerImage = docker.build("cliqz-oss/openwpm:${env.BUILD_TAG}");
     }
 
+    def HOST = helpers.getIp()
     def VNC_PORT = helpers.getFreePort(lower: 20000, upper: 20999)
     def dockerParams = "-p ${VNC_PORT}:5900 --cpus=2 --device /dev/nvidia0 --device /dev/nvidiactl"
+
+    currentBuild.description = "VNC ${HOST}:${VNC_PORT} SITES_LIMIT: ${params.SITES_LIMIT}"
+    print currentBuild.description
 
     dockerImage.inside(dockerParams) {
         stage('run crawl') {
