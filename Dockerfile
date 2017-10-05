@@ -3,7 +3,6 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update
 RUN apt-get install -y \
-    awscli \
     build-essential \
     bzip2 \
     ca-certificates \
@@ -33,6 +32,8 @@ RUN useradd openwpm \
   && usermod -a -G sudo openwpm \
   && echo 'ALL ALL = (ALL) NOPASSWD: ALL' >> /etc/sudoers \
   && echo 'openwpm:secret' | chpasswd
+
+RUN pip install awscli
 
 USER openwpm
 
