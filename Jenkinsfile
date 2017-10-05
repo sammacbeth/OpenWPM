@@ -16,7 +16,7 @@ node('docker && gpu') {
       sh '/home/openwpm/OpenWPM/run_docker.sh'
     }
 
-    stage('upload docs') {
+    stage('upload data') {
       withCredentials([[
         $class: 'UsernamePasswordMultiBinding',
         credentialsId: '',
