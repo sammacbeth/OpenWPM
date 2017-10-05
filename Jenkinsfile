@@ -37,7 +37,7 @@ node('docker && gpu') {
               credentialsId: '81657070-8a22-4dc7-a24f-1856678d7722',
               secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
               accessKeyVariable: 'AWS_ACCESS_KEY_ID']]) {
-                def s3Path = 's3://cliqz-mapreduce/anti-tracking/measurement_crawls/'
+                def s3Path = 's3://cliqz-mapreduce/anti-tracking/measurement_crawls'
                 sh "aws s3 cp /home/openwpm/crawl-data.sqlite ${s3Path}/crawl_${env.BUILD_NUMBER}.sqlite"
             }
         }
