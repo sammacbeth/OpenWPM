@@ -16,7 +16,7 @@ node('docker && gpu') {
     def dockerImage
 
     stage('docker build') {
-        dockerImage = docker.build("cliqz-oss/openwpm:${env.BUILD_TAG}");
+        dockerImage = docker.build("cliqz-oss/openwpm:${env.BUILD_TAG}", '--cpus=2');
     }
 
     def HOST = helpers.getIp()
