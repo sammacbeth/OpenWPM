@@ -5,6 +5,9 @@
 properties([
     parameters([
         string(name: 'SITES_LIMIT', defaultValue: '500'),
+        string(name: 'SCREEN_RESOLUTION', defaultValue: '1234x1000x24'),
+        choice(name: 'TIMEZONE', defaultValue: 'UTC', choices: 'UTC\nEurope/Berlin\nAmerica/New_York'),
+        booleanParam(name: 'INSTALL_FONTS', defaultValue: false)
     ]),
 ])
 
@@ -27,8 +30,17 @@ node('docker && gpu') {
     print currentBuild.description
 
     dockerImage.inside(dockerParams) {
+        stage('configure machine') {
+            // set timezone
+            sh "sudo ln -sf /usr/share/zoneinfo/${params.TIMEZONE} /etc/localtime"
+            // fonts
+            if (params.INSTALL_FONTS) {
+                sh "sudo apt install ttf-ubuntu-font-family"
+            }
+        }
+
         stage('run crawl') {
-            sh "/home/openwpm/OpenWPM/run_docker.sh ${params.SITES_LIMIT}"
+            sh "/home/openwpm/OpenWPM/run_docker.sh ${params.SITES_LIMIT} ${params.SCREEN_RESOLUTION}"
         }
 
         stage('upload data') {

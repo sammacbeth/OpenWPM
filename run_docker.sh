@@ -3,7 +3,7 @@
 set -x
 
 export DISPLAY=:0
-Xvfb $DISPLAY -screen 0 1234x1000x24 -ac &
+Xvfb $DISPLAY -screen 0 $2 -ac &
 sleep 1
 openbox &
 
