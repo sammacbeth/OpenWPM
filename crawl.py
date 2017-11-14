@@ -11,7 +11,7 @@ def iterate_sites():
         for line in fp:
             yield line.strip()
 
-NUM_BROWSERS = 2
+NUM_BROWSERS = 4
 manager_params, browser_params = TaskManager.load_default_params(NUM_BROWSERS)
 
 # Update browser configuration (use this for per-browser settings)
@@ -21,6 +21,11 @@ for i in xrange(NUM_BROWSERS):
     browser_params[i]['screen_res'] = '800x500'
 # second browser has no third party cookies
 browser_params[1]['tp_cookies'] = 'never'
+# third browser has Ghostery enabled
+browser_params[2]['ghostery'] = True
+# fourth browser has Ghostery enabled and no third-party cookies
+browser_params[3]['tp_cookies'] = 'never'
+browser_params[3]['ghostery'] = True
 
 # Update TaskManager configuration (use this for crawl-wide settings)
 manager_params['data_directory'] = '~/'
