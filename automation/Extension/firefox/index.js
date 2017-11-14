@@ -24,12 +24,12 @@ exports.main = function(options, callbacks) {
       sqlite_address:null,
       leveldb_address:null,
       logger_address:null,
-      disable_webdriver_self_id:true,
       cookie_instrument:true,
       js_instrument:true,
       cp_instrument:true,
       http_instrument:true,
       save_javascript:true,
+      save_all_content:true,
       testing:true,
       crawl_id:''
     };
@@ -40,15 +40,6 @@ exports.main = function(options, callbacks) {
                  config['logger_address'],
                  config['crawl_id']);
 
-  // Prevent the webdriver from identifying itself in the DOM. See #91
-  if (config['disable_webdriver_self_id']) {
-    loggingDB.logDebug("Disabling webdriver self identification");
-    pageMod.PageMod({
-      include: "*",
-      contentScriptWhen: "start",
-      contentScriptFile: data.url("remove_webdriver_attributes.js")
-    });
-  }
   if (config['cookie_instrument']) {
     loggingDB.logDebug("Cookie instrumentation enabled");
     cookieInstrument.run(config['crawl_id']);
@@ -63,6 +54,7 @@ exports.main = function(options, callbacks) {
   }
   if (config['http_instrument']) {
     loggingDB.logDebug("HTTP Instrumentation enabled");
-    httpInstrument.run(config['crawl_id'], config['save_javascript']);
+    httpInstrument.run(config['crawl_id'], config['save_javascript'],
+                       config['save_all_content']);
   }
 };
