@@ -1,6 +1,6 @@
 beautifulsoup4
 dill
-IPython
+IPython<6.0.0
 mini-amf
 mmh3
 multiprocess
