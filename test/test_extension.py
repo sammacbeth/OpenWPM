@@ -1,10 +1,12 @@
+from __future__ import absolute_import
+from datetime import datetime
 import pytest
 import os
-import utilities
-from openwpmtest import OpenWPMTest
+
+from . import utilities
+from .openwpmtest import OpenWPMTest
 from ..automation import TaskManager
 from ..automation.utilities import db_utils
-from datetime import datetime
 
 # Expected Navigator and Screen properties
 PROPERTIES = {
@@ -110,22 +112,6 @@ AUDIO_SYMBOLS = {
     u"OscillatorNode.stop"
 }
 
-# Symbols used during battery fingerprinting
-BATTERY_SYMBOLS = {
-    "window.navigator.getBattery",
-    "BatteryManager.charging",
-    "BatteryManager.level",
-    "BatteryManager.chargingTime",
-    "BatteryManager.dischargingTime",
-    "BatteryManager.addEventListener"
-}
-BATTERY_ARGUMENTS = {
-    '{"0":"chargingtimechange","1":"FUNCTION"}',
-    '{"0":"chargingchange","1":"FUNCTION"}',
-    '{"0":"levelchange","1":"FUNCTION"}',
-    '{"0":"dischargingtimechange","1":"FUNCTION"}'
-}
-
 JS_STACK_TEST_URL = u"%s/js_call_stack.html" % utilities.BASE_TEST_URL
 JS_STACK_TEST_SCRIPT_URL = u"%s/stack.js" % utilities.BASE_TEST_URL
 
@@ -198,7 +184,9 @@ class TestExtension(OpenWPMTest):
         # Check that all calls and methods are recorded
         rows = db_utils.get_javascript_entries(db)
         observed_rows = set()
-        for item in rows:
+        for row in rows:
+            item = (row['script_url'], row['symbol'], row['operation'],
+                    row['value'], row['arguments'])
             observed_rows.add(item)
         assert CANVAS_CALLS == observed_rows
 
@@ -252,18 +240,20 @@ class TestExtension(OpenWPMTest):
         # Check that all calls and methods are recorded
         rows = db_utils.get_javascript_entries(db)
         observed_rows = set()
-        for item in rows:
-            if (item[1] == "RTCPeerConnection.setLocalDescription" and
-                    item[2] == 'call'):
-                sdp_offer = item[4]
+        for row in rows:
+            if (row['symbol'] == "RTCPeerConnection.setLocalDescription" and
+                    row['operation'] == 'call'):
+                sdp_offer = row['arguments']
                 self.check_webrtc_sdp_offer(sdp_offer)
             else:
+                item = (row['script_url'], row['symbol'], row['operation'],
+                        row['value'], row['arguments'])
                 observed_rows.add(item)
         assert WEBRTC_CALLS == observed_rows
 
     @pytest.mark.skipif(
-        "TRAVIS" in os.environ and os.environ["TRAVIS"] == "true",
-        reason='Flaky on Travis CI')
+       "TRAVIS" in os.environ and os.environ["TRAVIS"] == "true",
+       reason='Flaky on Travis CI')
     def test_audio_fingerprinting(self):
         db = self.visit('/audio_fingerprinting.html')
         # Check that all calls and methods are recorded
@@ -278,40 +268,35 @@ class TestExtension(OpenWPMTest):
         # Check that all stack info are recorded
         rows = db_utils.get_javascript_entries(db, all_columns=True)
         observed_rows = set()
-        for item in rows:
-            observed_rows.add(item[3:11])
+        for row in rows:
+            item = (row['script_url'], row['script_line'], row['script_col'],
+                    row['func_name'], row['script_loc_eval'],
+                    row['call_stack'], row['symbol'], row['operation'])
+            observed_rows.add(item)
         assert JS_STACK_CALLS == observed_rows
 
     def test_js_time_stamp(self):
         # Check that timestamp is recorded correctly for the javascript table
         MAX_TIMEDELTA = 30  # max time diff in seconds
-        db = self.visit('/canvas_fingerprinting.html')
+        db = self.visit('/js_call_stack.html')
         utc_now = datetime.utcnow()  # OpenWPM stores timestamp in UTC time
         rows = db_utils.get_javascript_entries(db, all_columns=True)
         assert len(rows)  # make sure we have some JS events captured
         for row in rows:
-            js_time = datetime.strptime(row[13], "%Y-%m-%dT%H:%M:%S.%fZ")
+            js_time = datetime.strptime(row['time_stamp'],
+                                        "%Y-%m-%dT%H:%M:%S.%fZ")
             # compare UTC now and the timestamp recorded at the visit
             assert (utc_now - js_time).seconds < MAX_TIMEDELTA
         assert not db_utils.any_command_failed(db)
 
-    def test_battery_fingerprinting(self):
-        db = self.visit('/battery_fingerprinting.html')
-        # Check that all calls and methods are recorded
-        rows = db_utils.get_javascript_entries(db)
-        observed_symbols = set()
-        observed_arguments = set()
-        for script_url, symbol, operation, value, args in rows:
-            if symbol == "BatteryManager.addEventListener":
-                observed_arguments.add(args)
-            observed_symbols.add(symbol)
-        assert BATTERY_SYMBOLS == observed_symbols
-        assert BATTERY_ARGUMENTS == observed_arguments
-
-
     def test_document_cookie_instrumentation(self):
         db = self.visit(utilities.BASE_TEST_URL + "/js_cookie.html")
         rows = db_utils.get_javascript_entries(db, all_columns=True)
-        # [3:12] exclude id and empty columns
-        captured_cookie_calls = set([row[3:12] for row in rows])
+        captured_cookie_calls = set()
+        for row in rows:
+            item = (row['script_url'], row['script_line'], row['script_col'],
+                    row['func_name'], row['script_loc_eval'],
+                    row['call_stack'], row['symbol'], row['operation'],
+                    row['value'])
+            captured_cookie_calls.add(item)
         assert captured_cookie_calls == DOCUMENT_COOKIE_READ_WRITE

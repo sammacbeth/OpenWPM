@@ -1,24 +1,34 @@
+from __future__ import absolute_import
+from __future__ import print_function
+
+import os
 import pytest
-import utilities
-import commands
+import subprocess
+
+from . import utilities
+
+EXTENSION_DIR = os.path.join(
+    os.path.dirname(__file__), '..', 'automation', 'Extension', 'firefox')
 
 
 def create_xpi():
     """Creates a new xpi using jpm."""
-    cmd_cd = "cd ../automation/Extension/firefox/"
-    cmd_jpm = "jpm xpi"
-    print commands.getstatusoutput("%s && %s" % (cmd_cd, cmd_jpm))
+    if utilities.which("jpm"):
+        subprocess.check_call(["jpm", "xpi"],
+                              cwd=EXTENSION_DIR)
+    else:
+        assert os.path.exists(os.path.join(EXTENSION_DIR, 'openwpm.xpi'))
 
 
 @pytest.fixture(scope="session", autouse=True)
 def prepare_test_setup(request):
     """Run an HTTP server during the tests."""
     create_xpi()
-    print "\nStarting local_http_server"
+    print("\nStarting local_http_server")
     server, server_thread = utilities.start_server()
 
     def local_http_server_stop():
-        print "\nClosing server thread..."
+        print("\nClosing server thread...")
         server.shutdown()
         server_thread.join()
 

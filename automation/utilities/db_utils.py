@@ -1,15 +1,20 @@
+from __future__ import absolute_import
 import sqlite3
 import os
 import plyvel
 
+CONTENT_DB_NAME = 'content.ldb'
 
-def query_db(db, query, params=None):
+
+def query_db(db, query, params=None, as_tuple=False):
     """Run a query against the given db.
 
     If params is not None, securely construct a query from the given
     query string and params.
     """
     with sqlite3.connect(db) as con:
+        if not as_tuple:
+            con.row_factory = sqlite3.Row
         if params is None:
             rows = con.execute(query).fetchall()
         else:
@@ -22,10 +27,10 @@ def get_javascript_content(data_directory):
 
     Parameters
     ----------
-    data_directory : str
-        root directory of the crawl files containing `javascript.ldb`
+    data_directory : string
+        root directory of the crawl files containing the content database
     """
-    db_path = os.path.join(data_directory, 'javascript.ldb')
+    db_path = os.path.join(data_directory, CONTENT_DB_NAME)
     db = plyvel.DB(db_path,
                    create_if_missing=False,
                    compression='snappy')
@@ -34,13 +39,14 @@ def get_javascript_content(data_directory):
     db.close()
 
 
-def get_javascript_entries(db, all_columns=False):
+def get_javascript_entries(db, all_columns=False, as_tuple=False):
     if all_columns:
         select_columns = "*"
     else:
         select_columns = "script_url, symbol, operation, value, arguments"
 
-    return query_db(db, "SELECT %s FROM javascript" % select_columns)
+    return query_db(db, "SELECT %s FROM javascript" % select_columns,
+                    as_tuple=as_tuple)
 
 
 def any_command_failed(db):

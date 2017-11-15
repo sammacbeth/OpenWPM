@@ -40,12 +40,21 @@ USER openwpm
 # OpenWPM install
 RUN mkdir -p /home/openwpm/OpenWPM
 
+ENV FIREFOX_VERSION=52.4.1esr
 RUN cd /home/openwpm/ && \
-    wget https://ftp.mozilla.org/pub/firefox/releases/45.9.0esr/linux-x86_64/en-US/firefox-45.9.0esr.tar.bz2 && \
+    wget https://ftp.mozilla.org/pub/firefox/releases/${FIREFOX_VERSION}/linux-$(uname -m)/en-US/firefox-${FIREFOX_VERSION}.tar.bz2 && \
     tar jxf firefox*.tar.bz2 && \
     rm -rf firefox-bin && \
     mv firefox firefox-bin && \
     rm firefox*.tar.bz2
+
+ENV GECKODRIVER_VERSION=0.15.0
+ENV GECKODRIVER_ARCH=linux64
+RUN cd /home/openwpm/ && \
+    wget https://github.com/mozilla/geckodriver/releases/download/v${GECKODRIVER_VERSION}/geckodriver-v${GECKODRIVER_VERSION}-${GECKODRIVER_ARCH}.tar.gz && \
+    tar zxf geckodriver-v${GECKODRIVER_VERSION}-${GECKODRIVER_ARCH}.tar.gz && \
+    rm geckodriver-v${GECKODRIVER_VERSION}-${GECKODRIVER_ARCH}.tar.gz && \
+    mv geckodriver firefox-bin
 
 COPY requirements.txt /home/openwpm/
 RUN cd /home/openwpm/ && sudo pip install -U -r requirements.txt
