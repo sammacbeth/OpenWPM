@@ -1,17 +1,34 @@
+"""
+Crawl script
+
+Usage:
+    crawl [--ghostery] <site_limit> <sites_files>
+
+--ghostery  Load ghostery extension
+"""
+from docopt import docopt
 import sys
 import itertools
 from automation import TaskManager, CommandSequence
 
+opts = docopt(__doc__)
+
 # Number of sites to crawl
-site_limit = int(sys.argv[1])
-sites_file = './sites.txt'
+site_limit = int(opts['<site_limit>'])
+sites_files = opts['<sites_files>'].split(',')
 
 def iterate_sites():
-    with open(sites_file) as fp:
-        for line in fp:
-            yield line.strip()
+    for site_file in sites_files:
+        with open(site_file) as fp:
+            for line in fp:
+                site = line.strip()
+                if not site.startswith('http'):
+                    site = 'http://' + site
+                if not site.endswith('/'):
+                    site = site + '/'
+                yield site
 
-NUM_BROWSERS = 4
+NUM_BROWSERS = 2
 manager_params, browser_params = TaskManager.load_default_params(NUM_BROWSERS)
 
 # Update browser configuration (use this for per-browser settings)
@@ -19,13 +36,10 @@ for i in xrange(NUM_BROWSERS):
     browser_params[i]['http_instrument'] = True # Record HTTP Requests and Responses
     browser_params[i]['disable_flash'] = False #Enable flash for all three browsers
     browser_params[i]['screen_res'] = '800x500'
+    browser_params[i]['ghostery'] = opts['--ghostery'] == True
+
 # second browser has no third party cookies
 browser_params[1]['tp_cookies'] = 'never'
-# third browser has Ghostery enabled
-browser_params[2]['ghostery'] = True
-# fourth browser has Ghostery enabled and no third-party cookies
-browser_params[3]['tp_cookies'] = 'never'
-browser_params[3]['ghostery'] = True
 
 # Update TaskManager configuration (use this for crawl-wide settings)
 manager_params['data_directory'] = '~/'
