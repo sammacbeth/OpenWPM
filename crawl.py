@@ -39,7 +39,7 @@ for site in itertools.islice(iterate_sites(), site_limit):
     command_sequence = CommandSequence.CommandSequence(site)
 
     # Start by visiting the page
-    command_sequence.browse(1, sleep=0, timeout=60)
+    command_sequence.get(sleep=0, timeout=60)
 
     manager.execute_command_sequence(command_sequence, index='*') # ** = synchronized browsers
 
