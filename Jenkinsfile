@@ -10,11 +10,13 @@ properties([
         booleanParam(name: 'INSTALL_FONTS', defaultValue: false),
         booleanParam(name: 'GHOSTERY', defaultValue: false),
         string(name: 'SITES_LIST', defaultValue: './lists/sites.txt'),
-        choice(name: 'AWS_REGION', defaultValue: 'us-east-1', choices: 'us-east-1\neu-central-1')
+        choice(name: 'AWS_REGION', defaultValue: 'us-east-1', choices: 'us-east-1\neu-central-1'),
+        booleanParam(name: 'GPU', defaultValue: false)
     ]),
 ])
 
-node("docker && gpu && ${params.AWS_REGION}") {
+def gpu = params.GPU ? 'gpu' : '!gpu'
+node("docker && ${params.AWS_REGION} && ${gpu}") {
     stage('checkout') {
         checkout scm
     }
@@ -27,7 +29,10 @@ node("docker && gpu && ${params.AWS_REGION}") {
 
     def HOST = helpers.getIp()
     def VNC_PORT = helpers.getFreePort(lower: 20000, upper: 20999)
-    def dockerParams = "-p ${VNC_PORT}:5900 --cpus=2 --device /dev/nvidia0 --device /dev/nvidiactl"
+    def dockerParams = "-p ${VNC_PORT}:5900 --cpus=2"
+    if (params.GPU) {
+        dockerParams += " --device /dev/nvidia0 --device /dev/nvidiactl"
+    }
     def crawlParams = "${params.SCREEN_RESOLUTION} ${params.SITES_LIMIT} ${params.SITES_LIST}"
     if (params.GHOSTERY) {
         crawlParams += " --ghostery"
