@@ -7,11 +7,16 @@ properties([
         string(name: 'SITES_LIMIT', defaultValue: '500'),
         string(name: 'SCREEN_RESOLUTION', defaultValue: '1234x1000x24'),
         choice(name: 'TIMEZONE', defaultValue: 'UTC', choices: 'UTC\nEurope/Berlin\nAmerica/New_York'),
-        booleanParam(name: 'INSTALL_FONTS', defaultValue: false)
+        booleanParam(name: 'INSTALL_FONTS', defaultValue: false),
+        booleanParam(name: 'GHOSTERY', defaultValue: false),
+        string(name: 'SITES_LIST', defaultValue: './lists/sites.txt'),
+        choice(name: 'AWS_REGION', defaultValue: 'us-east-1', choices: 'us-east-1\neu-central-1'),
+        booleanParam(name: 'GPU', defaultValue: false)
     ]),
 ])
 
-node('docker && gpu') {
+def gpu = params.GPU ? 'gpu' : '!gpu'
+node("docker && ${params.AWS_REGION} && ${gpu}") {
     stage('checkout') {
         checkout scm
     }
@@ -24,7 +29,14 @@ node('docker && gpu') {
 
     def HOST = helpers.getIp()
     def VNC_PORT = helpers.getFreePort(lower: 20000, upper: 20999)
-    def dockerParams = "-p ${VNC_PORT}:5900 --cpus=2 --device /dev/nvidia0 --device /dev/nvidiactl"
+    def dockerParams = "-p ${VNC_PORT}:5900 --cpus=2"
+    if (params.GPU) {
+        dockerParams += " --device /dev/nvidia0 --device /dev/nvidiactl"
+    }
+    def crawlParams = "${params.SCREEN_RESOLUTION} ${params.SITES_LIMIT} ${params.SITES_LIST}"
+    if (params.GHOSTERY) {
+        crawlParams += " --ghostery"
+    }
 
     currentBuild.description = "VNC ${HOST}:${VNC_PORT} SITES_LIMIT: ${params.SITES_LIMIT}"
     print currentBuild.description
@@ -40,7 +52,7 @@ node('docker && gpu') {
         }
 
         stage('run crawl') {
-            sh "/home/openwpm/OpenWPM/run_docker.sh ${params.SITES_LIMIT} ${params.SCREEN_RESOLUTION}"
+            sh "/home/openwpm/OpenWPM/run_docker.sh ${crawlParams}"
         }
 
         stage('upload data') {
