@@ -28,34 +28,40 @@ def iterate_sites():
                     site = site + '/'
                 yield site
 
-NUM_BROWSERS = 2
-manager_params, browser_params = TaskManager.load_default_params(NUM_BROWSERS)
+def parallel_crawl(extra_params):
+    NUM_BROWSERS = 2
+    manager_params, browser_params = TaskManager.load_default_params(NUM_BROWSERS)
 
-# Update browser configuration (use this for per-browser settings)
-for i in xrange(NUM_BROWSERS):
-    browser_params[i]['http_instrument'] = True # Record HTTP Requests and Responses
-    browser_params[i]['disable_flash'] = False #Enable flash for all three browsers
-    browser_params[i]['screen_res'] = '800x500'
-    browser_params[i]['ghostery'] = opts['--ghostery'] == True
+    # Update browser configuration (use this for per-browser settings)
+    for i in xrange(NUM_BROWSERS):
+        browser_params[i]['http_instrument'] = True # Record HTTP Requests and Responses
+        browser_params[i]['disable_flash'] = False #Enable flash for all three browsers
+        browser_params[i]['screen_res'] = '800x500'
+        for key, value in extra_params.items():
+            browser_params[i][key] = value
 
-# second browser has no third party cookies
-browser_params[1]['tp_cookies'] = 'never'
+    # second browser has no third party cookies
+    browser_params[1]['tp_cookies'] = 'never'
 
-# Update TaskManager configuration (use this for crawl-wide settings)
-manager_params['data_directory'] = '~/'
-manager_params['log_directory'] = '~/'
+    # Update TaskManager configuration (use this for crawl-wide settings)
+    manager_params['data_directory'] = '~/'
+    manager_params['log_directory'] = '~/'
 
-# Instantiates the measurement platform
-manager = TaskManager.TaskManager(manager_params, browser_params)
+    # Instantiates the measurement platform
+    manager = TaskManager.TaskManager(manager_params, browser_params)
 
-# Visits the sites with all browsers simultaneously
-for site in itertools.islice(iterate_sites(), site_limit):
-    command_sequence = CommandSequence.CommandSequence(site)
+    # Visits the sites with all browsers simultaneously
+    for site in itertools.islice(iterate_sites(), site_limit):
+        command_sequence = CommandSequence.CommandSequence(site)
 
-    # Start by visiting the page
-    command_sequence.get(sleep=0, timeout=60)
+        # Start by visiting the page
+        command_sequence.get(sleep=0, timeout=60)
 
-    manager.execute_command_sequence(command_sequence, index='*') # ** = synchronized browsers
+        manager.execute_command_sequence(command_sequence, index='*') # ** = synchronized browsers
 
-# Shuts down the browsers and waits for the data to finish logging
-manager.close()
+    # Shuts down the browsers and waits for the data to finish logging
+    manager.close()
+
+parallel_crawl({})
+parallel_crawl({'ghostery': True})
+parallel_crawl({'ublock-origin': True})
